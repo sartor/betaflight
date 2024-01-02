@@ -381,7 +381,7 @@ void rxInit(void)
     // Configurable amount of filtering to remove excessive jumpiness of the values on the osd
     float k = (256.0f - rxConfig()->rssi_smoothing) / 256.0f;
 
-    pt1FilterInit(&rssiFilter, k);  
+    pt1FilterInit(&rssiFilter, k);
 
 #ifdef USE_RX_RSSI_DBM
     pt1FilterInit(&rssiDbmFilter, k);
@@ -626,6 +626,21 @@ static uint16_t getRxfailValue(uint8_t channel)
             return rcData[channel]; // last good value
         }
     case RX_FAILSAFE_MODE_SET:
+        if (IS_RC_MODE_ACTIVE(BOXUSER1)) { // continue movement switch is on
+            switch (channel) {
+            case ROLL:
+            case PITCH:
+            case YAW:
+                return 1500; // Set sticks to center, keep orientation
+            case THROTTLE:
+                return rcData[channel]; // Hold last throttle position to maintain speed
+            case AUX1: // Prevent disarm
+                return 1900;
+            case AUX2: // Set to acro
+                return 1900;
+            }
+        }
+
         return RXFAIL_STEP_TO_CHANNEL_VALUE(channelFailsafeConfig->step);
     }
 }
